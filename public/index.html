@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            margin-bottom: 60px;
+        }
+
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            h2 {
+                font-size: 18px;
+                margin-bottom: 10px;
+            }
+
+            form {
+                margin-bottom: 10px;
+            }
+
+            input[type="text"],
+            input[type="password"] {
+                padding: 6px;
+                font-size: 12px;
+            }
+
+            button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th,
+            td {
+                padding: 6px;
+            }
+
+            .footer {
+                margin-top: 20px;
+                margin-bottom: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Password Manager</h1>
+    <h2><div id="userName"></div></h2>
+    <!-- Password entry form -->
+    <form id="passwordForm">
+        <label for="appname">App Name:</label>
+        <input type="text" id="appname" name="appname" required><br>
+
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
+
+        <button type="submit">Save Password</button>
+    </form>
+
+    <!-- Search form -->
+    <h3><div id="passwordCount"></div></h3>
+    <form id="searchForm">
+        <label for="searchQuery">Search by App Name:</label>
+        <input type="text" id="searchQuery" name="searchQuery" required>
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- Passwords display -->
+    <h2>Passwords</h2>
+    <table id="passwordTable">
+        <thead>
+            <tr>
+                <th>App Name</th>
+                <th>Username</th>
+                <th>Password</th>
+                <th></th> <!-- Delete column -->
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Passwords will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Password Manager <br> &copy; Athuluri Akhil 2023. All rights reserved.
+    </div>
+
+    <script>
+        function getAndStoreUserName() {
+            // Check if the user name is already stored in the local storage
+            var userName = localStorage.getItem("userName");
+
+            // If user name is not available, prompt for it
+            if (!userName) {
+                userName = prompt("Please enter your name:");
+                localStorage.setItem("userName", userName);
+            }
+
+            // Display the user name on the page
+            var userNameElement = document.getElementById("userName");
+            userNameElement.innerHTML = "Welcome, " + userName;
+        }
+
+        // Call the function when the page is loaded
+        window.addEventListener("load", getAndStoreUserName);
+
+        // Function to handle password form submission
+        document.getElementById("passwordForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Get form values
+            var appname = document.getElementById("appname").value;
+            var username = document.getElementById("username").value;
+            var password = document.getElementById("password").value;
+
+            // Save password to localStorage
+            var passwords = JSON.parse(localStorage.getItem("passwords")) || [];
+            passwords.push({ appname: appname, username: username, password: password });
+            localStorage.setItem("passwords", JSON.stringify(passwords));
+
+            // Clear form fields
+            document.getElementById("appname").value = "";
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+
+            // Refresh the password table
+            displayPasswords();
+        });
+
+        // Function to handle search form submission
+        document.getElementById("searchForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Get search query
+            var searchQuery = document.getElementById("searchQuery").value;
+
+            // Retrieve passwords from localStorage
+            var passwords = JSON.parse(localStorage.getItem("passwords")) || [];
+
+            // Filter passwords by appname
+            var matchedPasswords = passwords.filter(function(password) {
+                return password.appname.toLowerCase().includes(searchQuery.toLowerCase());
+            });
+
+            // Clear table rows except the table header
+            var passwordTable = document.getElementById("passwordTable");
+            var tbody = passwordTable.getElementsByTagName("tbody")[0];
+            tbody.innerHTML = "";
+
+            // Add new rows with password data
+            matchedPasswords.forEach(function(password) {
+                var newRow = "<tr><td>" + password.appname + "</td><td>" + password.username + "<button class='copy-button' onclick='copyToClipboard(\"" + password.username + "\")'>Copy</button></td><td>" + password.password + "<button class='copy-button' onclick='copyToClipboard(\"" + password.password + "\")'>Copy</button></td><td><button onclick='deletePassword(\"" + password.appname + "\")'>Delete</button></td></tr>";
+                tbody.innerHTML += newRow;
+            });
+        });
+
+        // Function to delete a password entry
+        function deletePassword(appname) {
+            var passwords = JSON.parse(localStorage.getItem("passwords")) || [];
+            var updatedPasswords = passwords.filter(function(password) {
+                return password.appname !== appname;
+            });
+            localStorage.setItem("passwords", JSON.stringify(updatedPasswords));
+
+            // Refresh the password table
+            displayPasswords();
+        }
+
+        // Function to copy the value to clipboard
+        function copyToClipboard(value) {
+            const tempInput = document.createElement('input');
+            tempInput.value = value;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+        }
+
+        // Function to display passwords in the table
+        function displayPasswords() {
+            var passwordTable = document.getElementById("passwordTable");
+            var tbody = passwordTable.getElementsByTagName("tbody")[0];
+            tbody.innerHTML = "";
+
+            var passwords = JSON.parse(localStorage.getItem("passwords")) || [];
+
+            passwords.forEach(function(password) {
+                var newRow = "<tr><td>" + password.appname + "</td><td>" + password.username + "<button class='copy-button' onclick='copyToClipboard(\"" + password.username + "\")'>Copy</button></td><td>" + password.password + "<button class='copy-button' onclick='copyToClipboard(\"" + password.password + "\")'>Copy</button></td><td><button onclick='deletePassword(\"" + password.appname + "\")'>Delete</button></td></tr>";
+                tbody.innerHTML += newRow;
+            });
+
+            // Update the password count
+            var passwordCountElement = document.getElementById("passwordCount");
+            passwordCountElement.innerHTML = "Total Passwords Stored: " + passwords.length;
+        }
+
+        // Initial display of passwords
+        displayPasswords();
+    </script>
+</body>
+</html>
